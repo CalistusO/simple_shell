@@ -1,154 +1,303 @@
-SHELL PROJECT
-Objectives
-There are three objectives to this assignment:
+ALX Simple Shell Team Project
 
-    To familiarize ourselves with the Linux programming environment.
+    This is an ALX collaboration project on Shell. We were tasked to create a simple shell that mimics the Bash shell. Our shell shall be called hsh
 
-    To learn how processes are created, destroyed, and managed.
+Project was completed using
 
-    To gain exposure to the necessary functionality in shells.
+    C language
+    Shell
+    Betty linter
 
-Overview
+General Requirement for project
 
-    In this assignment, we implemented a command line interpreter or, as it is more commonly known, a shell. The shell should operate in this basic way: when you type in a command (in response to its prompt), the shell creates a child process that executes the command you entered and then prompts for more user input when it has finished.
+    All files will be compiled on Ubuntu 20.04 LTS using gcc, using the options -Wall -Werror -Wextra -pedantic -std=gnu89
+    All files should end with a new line
+    A README.md file, at the root of the folder of the project is mandatory
+    Use the Betty style. It will be checked using betty-style.pl and betty-doc.pl
+    Shell should not have any memory leaks
+    No more than 5 functions per file
+    All header files should be include guarded
+    Write a README with the description of the project
 
-    The shells we implemented will be similar to, but simpler than, the one you run every day in Unix. You can find out which shell you are running by typing "echo $SHELL" at a prompt. You may then wish to look at the man pages for 'csh' or the shell you are running (more likely tcsh, or bash, or for those few wacky ones in the crowd, zsh or ksh) to learn more about all of the functionality that can be present. For this project, you do not need to implement too much functionality because its just a simple shell.
+Description
 
-Program Specification
-Basic Shell
-Simple shell 0.1
+hsh is a simple UNIX command language interpreter that reads commands from either a file or standard input and executes them.
+How hsh works
 
-    Write a UNIX command line interpreter.
+    Prints a prompt and waits for a command from the user
+    Creates a child process in which the command is checked
+    Checks for built-ins, aliases in the PATH, and local executable programs
+    The child process is replaced by the command, which accepts arguments
+    When the command is done, the program returns to the parent process and prints the prompt
+    The program is ready to receive a new command
+    To exit: press Ctrl-D or enter "exit" (with or without a status)
+    Works also in non interactive mode
 
-        Usage: simple-shell
+Compilation
 
-        Your Shell should:
+gcc -Wall -Werror -Wextra -pedantic -std=gnu89 *.c -o hsh
+Invocation
 
-        Display a prompt and wait for the user to type a command. A command line always ends with a new line.
+Usage: hsh [filename]
 
-        The prompt is displayed again each time a command has been executed.
+To invoke hsh, compile all .c files in the repository and run the resulting executable.
 
-        The command lines are simple, no semicolons, no pipes, no redirections or any other advanced features.
+hsh can be invoked both interactively and non-interactively. If hsh is invoked with standard input not connected to a terminal, it reads and executes received commands in order.
 
-        The command lines are made only of one word. No arguments will be passed to programs.
+Example:
 
-        If an executable cannot be found, print an error message and display the prompt again.
+$ echo "echo 'hello'" | ./hsh
+'hello'
+$
 
-        Handle errors.
+If hsh is invoked with standard input connected to a terminal (determined by isatty(3)), an interactive shell is opened. When executing interactively, hsh displays the prompt $ when it is ready to read a command.
 
-        You have to handle the “end of file” condition (Ctrl+D)
+Example:
 
-        You don’t have to:
+$./hsh
+$
 
-        use the PATH
+Alternatively, if command line arguments are supplied upon invocation, hsh treats the first argument as a file from which to read commands. The supplied file should contain one command per line. hsh runs each of the commands contained in the file in order before exiting.
 
-        implement built-ins
+Example:
 
-        handle special characters : ", ', , \, *, &, #
+$ cat test
+echo 'hello'
+$ ./hsh test
+'hello'
+$
 
-        be able to move the cursor
+Environment
 
-        handle commands with arguments
+Upon invocation, hsh receives and copies the environment of the parent process in which it was executed. This environment is an array of name-value strings describing variables in the format NAME=VALUE. A few key environmental variables are:
+HOME
 
-Simple shell 0.2
+The home directory of the current user and the default directory argument for the cd builtin command.
 
-    Simple shell 0.1 +
-        Handle command lines with arguments
+$ echo "echo $HOME" | ./hsh
+/home/projects
 
-Simple shell 0.3
+PWD
 
-    Simple shell 0.2 +
-        Handle the PATH
-        fork must not be called if the command doesn’t exist
+The current working directory as set by the cd command.
 
-Simple shell 0.4
+$ echo "echo $PWD" | ./hsh
+/home/projects/alx/simple_shell
 
-    Simple shell 0.3 +
-        Implement the exit built-in, that exits the shell
-        Usage: exit
-        You don’t have to handle any argument to the built-in exit
+OLDPWD
 
-Simple shell 1.0
+The previous working directory as set by the cd command.
 
-    Simple shell 0.4 +
-        Implement the env built-in, that prints the current environment
+$ echo "echo $OLDPWD" | ./hsh
+/home/projects/alx/printf
 
-Simple shell 0.1.1
+PATH
 
-    Simple shell 0.1 +
-        Write your own getline function
-        Use a buffer to read many chars at once and call the least possible the read system call
-        You will need to use static variables
-        You are not allowed to use getline
+A colon-separated list of directories in which the shell looks for commands. A null directory name in the path (represented by any of two adjacent colons, an initial colon, or a trailing colon) indicates the current directory.
 
-    You don’t have to:
-        be able to move the cursor
+$ echo "echo $PATH" | ./hsh
+/home/projects/.cargo/bin:/home/projects/.local/bin:/home/projects/.rbenv/plugins/ruby-build/bin:/home/projects/.rbenv/shims:/home/projects/.rbenv/bin:/home/projects/.nvm/versions/node/v10.15.3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/home/projects/.cargo/bin:/home/projects/workflow:/home/projects/.local/bin
 
-Simple shell 0.2.1
+Command Execution
 
-    Simple shell 0.2 +
-        You are not allowed to use strtok
+After receiving a command, hsh tokenizes it into words using " " as a delimiter. The first word is considered the command and all remaining words are considered arguments to that command. hsh then proceeds with the following actions:
 
-Simple shell 0.4.1
+    If the first character of the command is neither a slash (\) nor dot (.), the shell searches for it in the list of shell builtins. If there exists a builtin by that name, the builtin is invoked.
+    If the first character of the command is none of a slash (\), dot (.), nor builtin, hsh searches each element of the PATH environmental variable for a directory containing an executable file by that name.
+    If the first character of the command is a slash (\) or dot (.) or either of the above searches was successful, the shell executes the named program with any remaining given arguments in a separate execution environment.
 
-    Simple shell 0.4 +
-        handle arguments for the built-in exit
-        Usage: exit status, where status is an integer used to exit the shell
+Exit Status
 
-setenv, unsetenv
+hsh returns the exit status of the last command executed, with zero indicating success and non-zero indicating failure.
 
-    Simple shell 1.0 +
+If a command is not found, the return status is 127; if a command is found but is not executable, the return status is 126.
 
-    Implement the setenv and unsetenv builtin commands
+All builtins return zero on success and one or two on incorrect usage (indicated by a corresponding error message).
+Signals
 
-setenv - Initialize a new environment variable, or modify an existing one - Command syntax: setenv VARIABLE VALUE - Should print something on stderr on failure unsetenv - Remove an environment variable - Command syntax: unsetenv VARIABLE - Should print something on stderr on failure
-cd
+While running in interactive mode, hsh ignores the keyboard input Ctrl+c. Alternatively, an input of end-of-file (Ctrl+d) will exit the program.
 
-    Simple shell 1.0 +
+User hits Ctrl+d in the third line.
 
-        Implement the builtin command cd:
+$ ./hsh
+$ ^C
+$ ^C
+$
 
-        Changes the current directory of the process.
+Variable Replacement
 
-        Command syntax: cd [DIRECTORY]
+hsh interprets the $ character for variable replacement.
+$ENV_VARIABLE
 
-        If no argument is given to cd the command must be interpreted like cd $HOME
+ENV_VARIABLE is substituted with its value.
 
-        You have to handle the command cd -
+Example:
 
-        You have to update the environment variable PWD when you change directory man chdir, man getcwd
+$ echo "echo $PWD" | ./hsh
+/home/projects/alx/simple_shell
 
-Handler of this separator ;
+$?
 
-    Simple shell 1.0 +
-        Handle the commands separator ;
+? is substitued with the return value of the last program executed.
 
-&& and ||
+Example:
 
-    Simple shell 1.0 +
-        Handle the && and || shell logical operators
+$ echo "echo $?" | ./hsh
+0
 
-alias
+$$
 
-    Simple shell 1.0 +
-        Implement the alias builtin command
-        Usage: alias [name[='value'] ...]
-        alias: Prints a list of all aliases, one per line, in the form name='value'
-        alias name [name2 ...]: Prints the aliases name, name2, etc 1 per line, in the form name='value'
-        alias name='value' [...]: Defines an alias for each name whose value is given. If name is already an alias, replaces its value with value
+The second $ is substitued with the current process ID.
+
+Example:
+
+$ echo "echo $$" | ./hsh
+6494
 
 Comments
 
-    Simple shell 1.0 +
-        Handle comments (#)
+hsh ignores all words and characters preceeded by a # character on a line.
 
-File as input
+Example:
 
-    Simple shell 1.0 +
-        Usage: simple_shell [filename]
-        Your shell can take a file as a command line argument
-        The file contains all the commands that your shell should run before exiting
-        The file should contain one command per line
-        In this mode, the shell should not print a prompt and should not read from stdin
+$ echo "echo 'hello' #this will be ignored!" | ./hsh
+'hello'
 
+Operators
+
+hsh specially interprets the following operator characters:
+; - Command separator
+
+Commands separated by a ; are executed sequentially.
+
+Example:
+
+$ echo "echo 'hello' ; echo 'world'" | ./hsh
+'hello'
+'world'
+
+&& - AND logical operator
+
+command1 && command2: command2 is executed if, and only if, command1 returns an exit status of zero.
+
+Example:
+
+$ echo "error! && echo 'hello'" | ./hsh
+./hsh: 1: error!: not found
+$ echo "echo 'all good' && echo 'hello'" | ./hsh
+'all good'
+'hello'
+
+|| - OR logical operator
+
+command1 || command2: command2 is executed if, and only if, command1 returns a non-zero exit status.
+
+Example:
+
+$ echo "error! || echo 'but still runs'" | ./hsh
+./hsh: 1: error!: not found
+'but still runs'
+
+The operators && and || have equal precedence, followed by ;.
+hsh Builtin Commands
+cd
+
+    Usage: cd [DIRECTORY]
+    Changes the current directory of the process to DIRECTORY.
+    If no argument is given, the command is interpreted as cd $HOME.
+    If the argument - is given, the command is interpreted as cd $OLDPWD and the pathname of the new working directory is printed to standad output.
+    If the argument, -- is given, the command is interpreted as cd $OLDPWD but the pathname of the new working directory is not printed.
+    The environment variables PWD and OLDPWD are updated after a change of directory.
+
+Example:
+
+$ ./hsh
+$ pwd
+/home/projects/alx/simple_shell
+$ cd ../
+$ pwd
+/home/projects/alx
+$ cd -
+$ pwd
+/home/projects/alx/simple_shell
+
+alias
+
+    Usage: alias [NAME[='VALUE'] ...]
+    Handles aliases.
+    alias: Prints a list of all aliases, one per line, in the form NAME='VALUE'.
+    alias NAME [NAME2 ...]: Prints the aliases NAME, NAME2, etc. one per line, in the form NAME='VALUE'.
+    alias NAME='VALUE' [...]: Defines an alias for each NAME whose VALUE is given. If name is already an alias, its value is replaced with VALUE.
+
+Example:
+
+$ ./hsh
+$ alias show=ls
+$ show
+AUTHORS            builtins_help_2.c  errors.c         linkedlist.c        shell.h       test
+README.md          env_builtins.c     getline.c        locate.c            hsh
+alias_builtins.c   environ.c          helper.c         main.c              split.c
+builtin.c          err_msgs1.c        helpers_2.c      man_1_simple_shell  str_funcs1.c
+builtins_help_1.c  err_msgs2.c        input_helpers.c  proc_file_comm.c    str_funcs2.c
+
+exit
+
+    Usage: exit [STATUS]
+    Exits the shell.
+    The STATUS argument is the integer used to exit the shell.
+    If no argument is given, the command is interpreted as exit 0.
+
+Example:
+
+$ ./hsh
+$ exit
+
+env
+
+    Usage: env
+    Prints the current environment.
+
+Example:
+
+$ ./hsh
+$ env
+NVM_DIR=/home/projects/.nvm
+...
+
+setenv
+
+    Usage: setenv [VARIABLE] [VALUE]
+    Initializes a new environment variable, or modifies an existing one.
+    Upon failure, prints a message to stderr.
+
+Example:
+
+$ ./hsh
+$ setenv NAME Poppy
+$ echo $NAME
+Poppy
+
+unsetenv
+
+    Usage: unsetenv [VARIABLE]
+    Removes an environmental variable.
+    Upon failure, prints a message to stderr.
+
+Example:
+
+$ ./hsh
+$ setenv NAME Poppy
+$ unsetenv NAME
+$ echo $NAME
+
+$
+
+What we learned:
+
+    How a shell works and finds commands
+    Creating, forking and working with processes
+    Executing a program from another program
+    Handling dynamic memory allocation in a large program
+    Pair programming and team work
+    Building a test suite to check our own code
 
